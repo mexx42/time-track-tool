@@ -18,77 +18,28 @@
           :options="dark_mode_options"
           dataKey="value"
           optionValue="value"
+          :disabled="disable_darkmode_switch"
         >
           <template #option="slotProps">
             <i :class="slotProps.option.icon"></i>
           </template>
         </SelectButton>
-        <Button
-          v-if="dev"
-          class="p-mr-2 p-ml-2"
-          :class="debug ? 'p-button-success' : ''"
-          label="Toggle Debug"
-          @click="setDebug(!debug)"
-        />
-        <Button
-          v-if="dev"
-          class="p-mr-2"
-          :class="$route.params.user_id == '9' ? 'p-button-success' : ''"
-          label="9"
-          @click="switch_user(9)"
-        />
-        <Button
-          v-if="dev"
-          class="p-mr-2"
-          :class="$route.params.user_id == '1528' ? 'p-button-success' : ''"
-          label="1528"
-          @click="switch_user(1528)"
-        />
-        <Button
-          v-if="dev"
-          label="2300"
-          :class="$route.params.user_id == '2300' ? 'p-button-success' : ''"
-          @click="switch_user(2300)"
-        />
-        <Button
-          v-if="dev"
-          label="4712"
-          :class="$route.params.user_id == '4712' ? 'p-button-success' : ''"
-          @click="switch_user(4712)"
-        />
       </div>
     </div>
-    <!-- <AppConfig />
-    <transition name="layout-mask">
-      <div
-        class="layout-mask p-component-overlay"
-        v-if="mobileMenuActive"
-      ></div>
-    </transition> -->
     <router-view />
   </div>
 </template>
 
 <script>
-import { format } from "date-fns";
 import { mapActions, mapMutations, mapState, mapGetters } from "vuex";
-import qs from "qs";
-// import AppConfig from "./AppConfig.vue";
 
 export default {
   name: "App",
   data: () => {
     return {
-      mobileMenuActive: false,
-      users: {
-        9: { name: "benesch@ds1.internal", pw: "a" },
-        2300: { name: "caban@ds1.internal", pw: "a" },
-        1528: { name: "georgiev@ds1.internal", pw: "a" },
-        4712: { name: "mcneilly@ds1.internal", pw: "daspasswort" },
-      },
-      dev: process.env.NODE_ENV === "development",
       my_dark_mode: null,
       theme_set: false,
+      disable_darkmode_switch: false,
       dark_mode_options: [
         { icon: "pi pi-sun", value: false },
         { icon: "pi pi-moon", value: true },
@@ -101,6 +52,7 @@ export default {
   watch: {
     my_dark_mode: function () {
       if (this.my_dark_mode !== this.dark_mode) {
+        this.disable_darkmode_switch = true;
         this.set_dark_mode({
           params: { user_id: this.user_id },
           data: {
@@ -108,7 +60,9 @@ export default {
             "@etag": this.user_etag,
           },
         }).then(() =>
-          this.get_dark_mode({ params: { user_id: this.user_id } })
+          this.get_dark_mode({ params: { user_id: this.user_id } }).then(() => {
+            this.disable_darkmode_switch = false;
+          })
         );
       }
       if (this.my_dark_mode === true) {
@@ -133,8 +87,6 @@ export default {
   },
   methods: {
     ...mapActions("rest", [
-      "login",
-      "logout",
       "get_new_tt_iface",
       "get_dark_mode",
       "set_dark_mode",
@@ -157,24 +109,6 @@ export default {
       let x = window.location.href.split("#")[0].split("/");
       x.pop();
       window.location = x.join("/");
-    },
-    switch_user: function (user_id) {
-      this.logout().then(() => {
-        console.log(user_id);
-        this.login({
-          data: qs.stringify({
-            __login_name: this.users[user_id].name,
-            __login_password: this.users[user_id].pw,
-            "@action": "Login",
-          }),
-        }).then(() => {
-          console.log(user_id);
-          this.setUserId(user_id);
-          this.$router.push(
-            "/" + user_id + "/week/2021/" + format(new Date(), "I")
-          );
-        });
-      });
     },
   },
   created: function () {
